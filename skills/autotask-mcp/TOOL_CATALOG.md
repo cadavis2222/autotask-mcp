@@ -109,6 +109,9 @@ This catalog mirrors tools defined by the Autotask MCP server and is grouped for
 
 ## Configuration and metadata
 - autotask_search_configuration_items
+- autotask_create_configuration_item
+- autotask_update_configuration_item
+- autotask_delete_configuration_item
 - autotask_get_field_info
 - autotask_list_queues
 - autotask_list_ticket_statuses

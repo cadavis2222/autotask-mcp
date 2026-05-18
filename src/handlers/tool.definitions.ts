@@ -1957,6 +1957,54 @@ export const TOOL_DEFINITIONS: McpTool[] = [
       required: []
     }
   },
+  {
+    name: 'autotask_create_configuration_item',
+    description: 'Create a configuration item in Autotask. Pass required fields in configurationItem.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        configurationItem: {
+          type: 'object',
+          description: 'Configuration item payload to create. Required fields depend on Autotask configuration item type and tenant settings.',
+          additionalProperties: true
+        }
+      },
+      required: ['configurationItem']
+    }
+  },
+  {
+    name: 'autotask_update_configuration_item',
+    description: 'Update an existing configuration item in Autotask',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'Configuration item ID to update'
+        },
+        updates: {
+          type: 'object',
+          description: 'Fields to update on the configuration item',
+          additionalProperties: true
+        }
+      },
+      required: ['id', 'updates']
+    }
+  },
+  {
+    name: 'autotask_delete_configuration_item',
+    description: 'Delete an existing configuration item in Autotask by ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'number',
+          description: 'Configuration item ID to delete'
+        }
+      },
+      required: ['id']
+    }
+  },
 
   // Contract tools
   {
@@ -2999,8 +3047,8 @@ export const TOOL_CATEGORIES: Record<string, { description: string; tools: strin
     tools: ['autotask_search_resources']
   },
   configuration_items: {
-    description: 'Search configuration items (assets/devices)',
-    tools: ['autotask_search_configuration_items']
+    description: 'Search, create, update, and delete configuration items (assets/devices)',
+    tools: ['autotask_search_configuration_items', 'autotask_create_configuration_item', 'autotask_update_configuration_item', 'autotask_delete_configuration_item']
   },
   company_notes: {
     description: 'Get, search, and create company notes',

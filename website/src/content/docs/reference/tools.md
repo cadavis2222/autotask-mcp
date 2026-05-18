@@ -102,6 +102,9 @@ The Autotask MCP Server exposes 39 tools organized by entity type.
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `autotask_search_configuration_items` | Search configuration items | `searchTerm`, `companyID` |
+| `autotask_create_configuration_item` | Create a configuration item | `configurationItem` (required object payload) |
+| `autotask_update_configuration_item` | Update a configuration item | `id`, `updates` (required) |
+| `autotask_delete_configuration_item` | Delete a configuration item | `id` (required) |
 
 ## Tasks
 

@@ -352,6 +352,9 @@ The server provides 39 tools for interacting with Autotask:
 
 #### Configuration Items
 - `autotask_search_configuration_items` - Search configuration items (assets)
+- `autotask_create_configuration_item` - Create a configuration item
+- `autotask_update_configuration_item` - Update a configuration item
+- `autotask_delete_configuration_item` - Delete a configuration item
 
 #### Task Operations
 - `autotask_search_tasks` - Search project tasks

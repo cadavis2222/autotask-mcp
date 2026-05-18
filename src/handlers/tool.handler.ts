@@ -983,6 +983,18 @@ export class AutotaskToolHandler {
       ['autotask_search_configuration_items', async (a) => {
         const r = await s.searchConfigurationItems(a); return { result: r, message: `Found ${r.length} configuration items` };
       }],
+      ['autotask_create_configuration_item', async (a) => {
+        const id = await s.createConfigurationItem(a.configurationItem);
+        return { result: id, message: `Successfully created configuration item with ID: ${id}` };
+      }],
+      ['autotask_update_configuration_item', async (a) => {
+        await s.updateConfigurationItem(a.id, a.updates);
+        return { result: undefined, message: `Successfully updated configuration item ID: ${a.id}` };
+      }],
+      ['autotask_delete_configuration_item', async (a) => {
+        await s.deleteConfigurationItem(a.id);
+        return { result: undefined, message: `Successfully deleted configuration item ID: ${a.id}` };
+      }],
 
       // Contracts
       ['autotask_search_contracts', async (a) => {

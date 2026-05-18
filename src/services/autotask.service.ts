@@ -807,6 +807,18 @@ export class AutotaskService {
     }
   }
 
+  async deleteConfigurationItem(id: number): Promise<void> {
+    const http = await this.ensureClient();
+    try {
+      this.logger.debug(`Deleting configuration item ${id}`);
+      await http.delete('ConfigurationItems', id);
+      this.logger.info(`Configuration item ${id} deleted successfully`);
+    } catch (error) {
+      this.logger.error(`Failed to delete configuration item ${id}:`, error);
+      throw error;
+    }
+  }
+
   // =====================================================
   // Contracts (read-only)
   // =====================================================

@@ -1,5 +1,5 @@
 ---
-name: autotask_mcp
+name: autotask-mcp
 description: Use this skill when users need Autotask PSA operations through MCP, including tickets, companies, contacts, projects, time entries, billing, service calls, and notes.
 metadata: {"openclaw":{"homepage":"https://github.com/wyre-technology/autotask-mcp","requires":{"bins":["node","npx"],"env":["AUTOTASK_USERNAME","AUTOTASK_SECRET","AUTOTASK_INTEGRATION_CODE"]}}}
 ---
@@ -77,6 +77,12 @@ Before calling Autotask tools:
 1. autotask_search_billing_items
 2. autotask_get_billing_item
 3. autotask_search_billing_item_approval_levels
+
+### Configuration item lifecycle
+1. autotask_search_configuration_items to find target records
+2. autotask_create_configuration_item with configurationItem payload when adding assets
+3. autotask_update_configuration_item with id + updates for field changes
+4. autotask_delete_configuration_item with id only after explicit user confirmation
 
 ## Tool catalog
 

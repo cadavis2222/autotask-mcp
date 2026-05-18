@@ -1,27 +1,27 @@
 # OpenClaw Skill Conversion
 
 This repository now includes an OpenClaw skill at:
-- skills/autotask_mcp/SKILL.md
+- skills/autotask-mcp/SKILL.md
 
 ## What was converted
 
 The MCP server tool surface was converted into an AgentSkills-compatible OpenClaw skill that:
 - Describes when and how to use Autotask MCP tools.
 - Adds OpenClaw metadata for runtime eligibility checks.
-- Provides a full tool inventory in skills/autotask_mcp/TOOL_CATALOG.md.
+- Provides a full tool inventory in skills/autotask-mcp/TOOL_CATALOG.md.
 
 ## Install options
 
 OpenClaw auto-loads workspace skills from:
 - <workspace>/skills
 
-Because this repo now has skills/autotask_mcp/SKILL.md, OpenClaw can detect it when this folder is used as an OpenClaw workspace.
+Because this repo now has skills/autotask-mcp/SKILL.md, OpenClaw can detect it when this folder is used as an OpenClaw workspace.
 
 ## Verify in OpenClaw
 
 1. Start a new OpenClaw session.
 2. Run openclaw skills list.
-3. Confirm autotask_mcp appears.
+3. Confirm autotask-mcp appears.
 4. Test with a prompt such as:
 - "Check Autotask connection and find open tickets for company Acme"
 
