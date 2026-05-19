@@ -265,19 +265,13 @@ jobs:
             --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             --query "passwords[0].value" -o tsv)
 
-          az containerapp secret set \
-            --name mcpgw-prod-autotask \
-            --resource-group mcp-gateway-prod \
-            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            --secrets acr-pwd="$ACR_PASS"
-
           az containerapp registry set \
             --name mcpgw-prod-autotask \
             --resource-group mcp-gateway-prod \
             --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             --server "${{ secrets.ACR_NAME }}.azurecr.io" \
             --username "$ACR_USER" \
-            --password-secret-ref acr-pwd
+            --password "$ACR_PASS"
 
           # ACR auth propagation can lag right after image push.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
