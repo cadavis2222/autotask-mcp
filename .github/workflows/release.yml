@@ -249,13 +249,35 @@ jobs:
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest"
           echo "Deploying $IMAGE to mcpgw-prod-autotask (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
 
-          # Refresh registry wiring each deploy to avoid stale linkage.
+          # Use ACR admin credentials to avoid intermittent managed-identity pull auth failures.
+          az acr update \
+            --name "${{ secrets.ACR_NAME }}" \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            --admin-enabled true
+
+          ACR_USER=$(az acr credential show \
+            --name "${{ secrets.ACR_NAME }}" \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            --query username -o tsv)
+
+          ACR_PASS=$(az acr credential show \
+            --name "${{ secrets.ACR_NAME }}" \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            --query "passwords[0].value" -o tsv)
+
+          az containerapp secret set \
+            --name mcpgw-prod-autotask \
+            --resource-group mcp-gateway-prod \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            --secrets acr-pwd="$ACR_PASS"
+
           az containerapp registry set \
             --name mcpgw-prod-autotask \
             --resource-group mcp-gateway-prod \
             --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
             --server "${{ secrets.ACR_NAME }}.azurecr.io" \
-            --identity system
+            --username "$ACR_USER" \
+            --password-secret-ref acr-pwd
 
           # ACR auth propagation can lag right after image push.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
