@@ -249,9 +249,16 @@ jobs:
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest"
           echo "Deploying $IMAGE to mcpgw-prod-autotask (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
 
-          # Identity + registry wiring is provisioned once out-of-band.
-          # Here we only roll to the new image.
-          for attempt in 1 2 3; do
+          # Refresh registry wiring each deploy to avoid stale linkage.
+          az containerapp registry set \
+            --name mcpgw-prod-autotask \
+            --resource-group mcp-gateway-prod \
+            --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+            --server "${{ secrets.ACR_NAME }}.azurecr.io" \
+            --identity system
+
+          # ACR auth propagation can lag right after image push.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if az containerapp update \
               --name mcpgw-prod-autotask \
               --resource-group mcp-gateway-prod \
@@ -262,8 +269,8 @@ jobs:
             fi
 
             echo "Deploy attempt ${attempt} failed; waiting for registry/identity propagation before retry..."
-            sleep 30
+            sleep 45
           done
 
-          echo "Deployment failed after 3 attempts."
+          echo "Deployment failed after 10 attempts."
           exit 1
