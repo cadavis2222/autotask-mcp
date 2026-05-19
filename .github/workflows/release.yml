@@ -254,19 +254,6 @@ jobs:
             --resource-group mcp-gateway-prod \
             --system-assigned
 
-          APP_PRINCIPAL_ID=$(az containerapp show \
-            --name mcpgw-prod-autotask \
-            --resource-group mcp-gateway-prod \
-            --query identity.principalId -o tsv)
-
-          ACR_ID=$(az acr show --name ${{ secrets.ACR_NAME }} --query id -o tsv)
-
-          az role assignment create \
-            --assignee-object-id "$APP_PRINCIPAL_ID" \
-            --assignee-principal-type ServicePrincipal \
-            --role AcrPull \
-            --scope "$ACR_ID" || true
-
           az containerapp registry set \
             --name mcpgw-prod-autotask \
             --resource-group mcp-gateway-prod \
