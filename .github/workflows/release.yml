@@ -137,8 +137,18 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to Azure Container Registry
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+      - name: Get ACR access token
+        id: acr-token
+        run: |
+          TOKEN=$(az acr login --name ${{ secrets.ACR_NAME }} --expose-token --output tsv --query accessToken)
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Docker login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_NAME }}.azurecr.io
+          username: 00000000-0000-0000-0000-000000000000
+          password: ${{ steps.acr-token.outputs.token }}
 
       - name: Get version from package.json
         id: version
@@ -192,8 +202,18 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to Azure Container Registry
-        run: az acr login --name ${{ secrets.ACR_NAME }}
+      - name: Get ACR access token
+        id: acr-token
+        run: |
+          TOKEN=$(az acr login --name ${{ secrets.ACR_NAME }} --expose-token --output tsv --query accessToken)
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
+      - name: Docker login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_NAME }}.azurecr.io
+          username: 00000000-0000-0000-0000-000000000000
+          password: ${{ steps.acr-token.outputs.token }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
