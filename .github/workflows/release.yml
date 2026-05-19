@@ -205,9 +205,9 @@ jobs:
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: 0140e162-e27c-4dfe-9e92-663ea66dbca1
+          tenant-id: a0de87f9-7143-4259-95f6-0fa3f383cbf0
+          subscription-id: 9e0409de-04ba-4a7b-94e9-67e4d530b595
 
       - name: Deploy to Azure Container Apps
         run: |
@@ -218,4 +218,4 @@ jobs:
             --name mcpgw-prod-autotask \
             --resource-group mcp-gateway-prod \
             --image "$IMAGE" \
-            --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"
+            --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"            
