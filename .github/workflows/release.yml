@@ -119,7 +119,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
-      packages: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -130,12 +130,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name ${{ secrets.ACR_NAME }}
 
       - name: Get version from package.json
         id: version
@@ -145,7 +148,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/wyre-technology/autotask-mcp
+          images: ${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -161,8 +164,8 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/wyre-technology/autotask-mcp:latest
-            ghcr.io/wyre-technology/autotask-mcp:v${{ steps.version.outputs.version }}
+            ${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest
+            ${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:v${{ steps.version.outputs.version }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -179,12 +182,23 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      id-token: write
 
     steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'ghcr.io/wyre-technology/autotask-mcp:latest'
+          image-ref: '${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest'
           format: 'sarif'
           output: 'trivy-results.sarif'
 
@@ -212,8 +226,33 @@ jobs:
       - name: Deploy to Azure Container Apps
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
-          IMAGE="ghcr.io/${{ github.repository }}:latest"
+          IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest"
           echo "Deploying $IMAGE to mcpgw-prod-autotask (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
+
+          az containerapp identity assign \
+            --name mcpgw-prod-autotask \
+            --resource-group mcp-gateway-prod \
+            --system-assigned
+
+          APP_PRINCIPAL_ID=$(az containerapp show \
+            --name mcpgw-prod-autotask \
+            --resource-group mcp-gateway-prod \
+            --query identity.principalId -o tsv)
+
+          ACR_ID=$(az acr show --name ${{ secrets.ACR_NAME }} --query id -o tsv)
+
+          az role assignment create \
+            --assignee-object-id "$APP_PRINCIPAL_ID" \
+            --assignee-principal-type ServicePrincipal \
+            --role AcrPull \
+            --scope "$ACR_ID" || true
+
+          az containerapp registry set \
+            --name mcpgw-prod-autotask \
+            --resource-group mcp-gateway-prod \
+            --server "${{ secrets.ACR_NAME }}.azurecr.io" \
+            --identity system
+
           az containerapp update \
             --name mcpgw-prod-autotask \
             --resource-group mcp-gateway-prod \
