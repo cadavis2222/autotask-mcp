@@ -249,19 +249,21 @@ jobs:
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest"
           echo "Deploying $IMAGE to mcpgw-prod-autotask (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
 
-          az containerapp identity assign \
-            --name mcpgw-prod-autotask \
-            --resource-group mcp-gateway-prod \
-            --system-assigned
+          # Identity + registry wiring is provisioned once out-of-band.
+          # Here we only roll to the new image.
+          for attempt in 1 2 3; do
+            if az containerapp update \
+              --name mcpgw-prod-autotask \
+              --resource-group mcp-gateway-prod \
+              --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+              --image "$IMAGE" \
+              --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"; then
+              exit 0
+            fi
 
-          az containerapp registry set \
-            --name mcpgw-prod-autotask \
-            --resource-group mcp-gateway-prod \
-            --server "${{ secrets.ACR_NAME }}.azurecr.io" \
-            --identity system
+            echo "Deploy attempt ${attempt} failed; waiting for registry/identity propagation before retry..."
+            sleep 30
+          done
 
-          az containerapp update \
-            --name mcpgw-prod-autotask \
-            --resource-group mcp-gateway-prod \
-            --image "$IMAGE" \
-            --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"    
+          echo "Deployment failed after 3 attempts."
+          exit 1
