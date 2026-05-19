@@ -8,8 +8,8 @@ Your Autotask MCP Server is now ready for automated releases! Here's what has be
 - **`.github/workflows/release.yml`** - Main release automation
   - Tests on Node.js 18, 20, 22
   - Creates GitHub releases with semantic-release
-  - Publishes to NPM (when configured)
-  - Builds and pushes Docker images to Docker Hub
+  - Builds and pushes Docker images to Azure Container Registry
+  - Deploys the latest image to Azure Container Apps
   - Runs security scans with Trivy
 
 - **`.github/workflows/test.yml`** - Pull request testing
@@ -22,7 +22,7 @@ Your Autotask MCP Server is now ready for automated releases! Here's what has be
   - Supports main, next, beta, alpha branches
   - Automated changelog generation
   - GitHub release creation
-  - NPM publishing integration
+  - GitHub-only release publishing
 
 ### Docker Setup
 - **Enhanced Dockerfile** - Production-ready containerization
@@ -56,23 +56,19 @@ Add these secrets in your GitHub repository (`Settings > Secrets and variables >
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `GITHUB_TOKEN` | ✅ Auto | Automatically provided |
-| `NPM_TOKEN` | 🔶 Optional | For NPM publishing |
-| `DOCKERHUB_USERNAME` | ✅ Required | Your Docker Hub username (`wyre-technology`) |
-| `DOCKERHUB_TOKEN` | ✅ Required | Docker Hub access token |
+| `AZURE_CLIENT_ID` | ✅ Required | Azure AD application client ID for OIDC login |
+| `AZURE_TENANT_ID` | ✅ Required | Azure tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | ✅ Required | Azure subscription ID |
+| `ACR_NAME` | ✅ Required | Azure Container Registry name |
+| `AZURE_CONTAINER_APP_NAME` | ✅ Required | Azure Container App name to update during deploy |
+| `AZURE_CONTAINER_APP_RESOURCE_GROUP` | ✅ Required | Resource group containing the Azure Container App |
 
-### 2. Docker Hub Token Setup
+### 2. Azure Deployment Setup
 
-1. Go to [hub.docker.com](https://hub.docker.com/)
-2. Navigate to Account Settings > Security
-3. Create New Access Token with Read/Write permissions
-4. Add as `DOCKERHUB_TOKEN` secret in GitHub
-
-### 3. NPM Token Setup (Optional)
-
-1. Go to [npmjs.com](https://www.npmjs.com/)
-2. Account Settings > Access Tokens
-3. Generate **Automation** token
-4. Add as `NPM_TOKEN` secret in GitHub
+1. Create or reuse an Azure AD app registration authorized for GitHub OIDC.
+2. Add `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` as repository secrets.
+3. Add the Azure Container Registry name as `ACR_NAME`.
+4. Add `AZURE_CONTAINER_APP_NAME` and `AZURE_CONTAINER_APP_RESOURCE_GROUP` for the deploy target.
 
 ## 🚀 How to Release
 
@@ -107,15 +103,14 @@ git push origin main
 - ✅ Version tags (e.g., `v1.0.2`)
 - ✅ Distribution files as assets
 
-### Docker Hub Images
-- ✅ `wyre-technology/autotask-mcp:latest`
-- ✅ `wyre-technology/autotask-mcp:v1.0.2`
-- ✅ Multi-architecture (AMD64 + ARM64)
-- ✅ Comprehensive metadata labels
+### Azure Container Registry Images
+- ✅ `<acr-name>.azurecr.io/autotask-mcp:latest`
+- ✅ `<acr-name>.azurecr.io/autotask-mcp:v1.0.2`
+- ✅ Linux AMD64 image with metadata labels
 
-### NPM Package (Optional)
-- 🔶 `autotask-mcp` package
-- 🔶 Automated version management
+### Azure Container Apps Deployment
+- ✅ Updates the production container app to the latest pushed image
+- ✅ Uses the `latest` tag for the production rollout
 
 ## 🔍 Monitoring Releases
 
@@ -124,21 +119,20 @@ git push origin main
 - Review logs for any failures
 - Security scan results in **Security** tab
 
-### Docker Hub
-- Visit: https://hub.docker.com/r/wyre-technology/autotask-mcp
-- Verify image tags and metadata
-- Check download statistics
+### Azure Container Registry
+- Verify the `latest` and versioned tags in your ACR instance
+- Confirm image metadata and push timestamps
 
-### NPM (if enabled)
-- Visit: https://www.npmjs.com/package/autotask-mcp
-- Verify version and download stats
+### Azure Container Apps
+- Check the active revision in the Container App
+- Confirm the deployed image matches the latest release
 
 ## 🛠 Using Released Images
 
 ### Quick Start with Docker
 ```bash
 # Pull the latest image
-docker pull wyre-technology/autotask-mcp:latest
+docker pull <acr-name>.azurecr.io/autotask-mcp:latest
 
 # Run with environment variables
 docker run -d \
@@ -146,14 +140,14 @@ docker run -d \
   -e AUTOTASK_USERNAME="your-user@company.com" \
   -e AUTOTASK_SECRET="your-secret" \
   -e AUTOTASK_INTEGRATION_CODE="your-code" \
-  wyre-technology/autotask-mcp:latest
+  <acr-name>.azurecr.io/autotask-mcp:latest
 ```
 
 ### Docker Compose
 ```yaml
 services:
   autotask-mcp:
-    image: wyre-technology/autotask-mcp:latest
+    image: <acr-name>.azurecr.io/autotask-mcp:latest
     environment:
       - AUTOTASK_USERNAME=${AUTOTASK_USERNAME}
       - AUTOTASK_SECRET=${AUTOTASK_SECRET}
@@ -174,8 +168,8 @@ services:
 1. **Set up secrets** in your GitHub repository
 2. **Test the workflow** by making a small change and pushing to main
 3. **Monitor the release** in GitHub Actions
-4. **Verify Docker images** are published to Docker Hub
-5. **Update documentation** with your specific Docker Hub username
+4. **Verify container images** are published to Azure Container Registry
+5. **Confirm the Azure Container App** is running the new image
 
 ## 🆘 Troubleshooting
 
@@ -196,7 +190,8 @@ Your release setup is working when you see:
 
 - ✅ GitHub Actions workflows completing successfully
 - ✅ New releases appearing in GitHub Releases tab
-- ✅ Docker images published to Docker Hub
+- ✅ Container images published to Azure Container Registry
+- ✅ Azure Container App revisions updating to the new image
 - ✅ Security scans completing without critical issues
 - ✅ Proper version tagging following semantic versioning
 

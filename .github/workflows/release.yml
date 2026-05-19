@@ -48,10 +48,11 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && contains(fromJSON('["refs/heads/main","refs/heads/next","refs/heads/next-major","refs/heads/beta","refs/heads/alpha"]'), github.ref)
     permissions:
       contents: write
       issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout
@@ -75,42 +76,33 @@ jobs:
         id: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
 
       - name: Get released version
         id: release-version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          # Check if a release was actually created for this version
-          if gh release view "v$VERSION" --repo ${{ github.repository }} &>/dev/null; then
+          TAG=$(git tag --points-at HEAD | grep -E '^v[0-9]+' | head -n 1 || true)
+
+          if [ -n "$TAG" ]; then
+            VERSION="${TAG#v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
             echo "released=true" >> $GITHUB_OUTPUT
+            echo "Detected release tag on HEAD: $TAG"
           else
+            echo "version=" >> $GITHUB_OUTPUT
             echo "released=false" >> $GITHUB_OUTPUT
+            echo "No release tag found on HEAD; semantic-release did not publish a new release."
           fi
 
       - name: Pack and upload MCPB bundle
         if: steps.release-version.outputs.released == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install -g @anthropic-ai/mcpb
           npm run pack:mcpb
           gh release upload "v${{ steps.release-version.outputs.version }}" autotask-mcp.mcpb \
             --repo ${{ github.repository }} --clobber
-
-      - name: Trigger MCP Gateway redeploy
-        if: steps.release-version.outputs.released == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GATEWAY_DEPLOY_PAT }}
-        run: |
-          gh api repos/wyre-technology/mcp-gateway/dispatches \
-            -f event_type=mcp-server-updated \
-            -f "client_payload[server]=${{ github.event.repository.name }}" \
-            -f "client_payload[version]=${{ steps.release-version.outputs.version }}"
 
   docker:
     name: Build and Push Docker Image
@@ -247,13 +239,15 @@ jobs:
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
           IMAGE="${{ secrets.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest"
-          echo "Deploying $IMAGE to mcpgw-prod-autotask (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
+          CONTAINER_APP_NAME="${{ secrets.AZURE_CONTAINER_APP_NAME }}"
+          CONTAINER_APP_RESOURCE_GROUP="${{ secrets.AZURE_CONTAINER_APP_RESOURCE_GROUP }}"
+          echo "Deploying $IMAGE to ${CONTAINER_APP_NAME} in ${CONTAINER_APP_RESOURCE_GROUP} (revision tag sha-${SHORT_SHA}-${GITHUB_RUN_ID})"
 
           # ACR auth propagation can lag right after image push.
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if az containerapp update \
-              --name mcpgw-prod-autotask \
-              --resource-group mcp-gateway-prod \
+              --name "$CONTAINER_APP_NAME" \
+              --resource-group "$CONTAINER_APP_RESOURCE_GROUP" \
               --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
               --image "$IMAGE" \
               --set-env-vars "IMAGE_VERSION=sha-${SHORT_SHA}-${GITHUB_RUN_ID}"; then

@@ -178,12 +178,6 @@ if [ -z "$GITHUB_TOKEN" ]; then
     print_status "You may need to set GITHUB_TOKEN for automated releases"
 fi
 
-# Check NPM token for publishing (if needed)
-if [ -z "$NPM_TOKEN" ]; then
-    print_warning "NPM_TOKEN environment variable not set"
-    print_status "You may need to set NPM_TOKEN for NPM publishing"
-fi
-
 # Summary
 echo ""
 print_success "🎉 Release preparation completed successfully!"
@@ -204,5 +198,4 @@ echo "  3. The GitHub Actions workflow will handle the release automatically"
 echo ""
 print_status "Manual release commands:"
 echo "  - Create GitHub release: gh release create v$CURRENT_VERSION"
-echo "  - Publish to NPM: npm publish"
-echo "  - Build and push Docker: docker build -t wyre-technology/autotask-mcp:latest . && docker push wyre-technology/autotask-mcp:latest" 
+echo "  - Build and push Docker: docker build -t <acr-name>.azurecr.io/autotask-mcp:latest . && docker push <acr-name>.azurecr.io/autotask-mcp:latest"
